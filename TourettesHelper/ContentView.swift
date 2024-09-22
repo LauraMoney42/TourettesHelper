@@ -1,14 +1,13 @@
 import SwiftUI
 
-// MARK: - Models
 
-// Define the message sender types
+// message sender types
 enum MessageSender {
     case user
     case assistant
 }
 
-// Define the message struct
+// message struct
 struct ChatMessage: Identifiable {
     let id = UUID()
     let sender: MessageSender
@@ -60,7 +59,7 @@ struct ContentItem: Codable {
     let type: String
     let text: MessageText?
 
-    // Custom initializer to handle decoding 'text' as either a String or an object
+    //  handle decoding 'text' as either a String or an object
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         type = try container.decode(String.self, forKey: .type)
@@ -92,7 +91,7 @@ struct Run: Codable {
     let thread_id: String
     let status: String
     let model: String?
-    // Add other properties as needed
+    
 }
 
 struct MessageList: Codable {
@@ -103,7 +102,7 @@ struct MessageList: Codable {
     let has_more: Bool
 }
 
-// Error response model
+// Errors
 struct ErrorResponse: Codable {
     let error: APIError
 }
@@ -115,7 +114,6 @@ struct APIError: Codable {
     let code: String?
 }
 
-// MARK: - AnyCodable for dynamic types
 
 struct AnyCodable: Codable {
     let value: Any
@@ -132,14 +130,13 @@ struct AnyCodable: Codable {
     }
 }
 
-// MARK: - ViewModel
 
 final class ViewModel: ObservableObject {
-    private let apiKey = "" // Replace with API key
-    private let assistantID = "" // Replace with Assistant ID
+    private let apiKey = "APIKey" // Replace with  API key
+    private let assistantID = "AssistantID" // Replace with  Assistant ID
     private var threadID = ""
 
-    // Function to create a thread
+    // create a thread
     func createThread(completion: @escaping (String?) -> Void) {
         let url = URL(string: "https://api.openai.com/v1/threads")!
 
@@ -168,7 +165,7 @@ final class ViewModel: ObservableObject {
         }
     }
 
-    // Function to send a message
+    // send a message
     func sendMessage(content: String, completion: @escaping (Bool) -> Void) {
         guard !assistantID.isEmpty, !threadID.isEmpty else {
             print("Assistant ID or Thread ID is missing.")
@@ -210,7 +207,7 @@ final class ViewModel: ObservableObject {
         }
     }
 
-    // Function to create a run
+    // create a run
     func createRun(completion: @escaping (Bool) -> Void) {
         guard !assistantID.isEmpty, !threadID.isEmpty else {
             print("Assistant ID or Thread ID is missing.")
@@ -247,7 +244,7 @@ final class ViewModel: ObservableObject {
         }
     }
 
-    // Function to fetch messages
+    // fetch messages
     func fetchMessages(completion: @escaping (String?) -> Void) {
         guard !threadID.isEmpty else {
             print("Thread ID is missing.")
@@ -278,14 +275,14 @@ final class ViewModel: ObservableObject {
         }
     }
 
-    // Helper function to add headers to the request
+    // add headers to the request
     private func addHeaders(to request: inout URLRequest) {
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("assistants=v2", forHTTPHeaderField: "OpenAI-Beta")
     }
 
-    // Generic function to perform API requests
+    //  API requests
     private func performRequest<T: Decodable>(_ request: URLRequest, completion: @escaping (T?) -> Void) {
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
@@ -323,7 +320,6 @@ final class ViewModel: ObservableObject {
     }
 }
 
-// MARK: - SwiftUI View
 
 struct ContentView: View {
     @StateObject var viewModel = ViewModel()
@@ -434,7 +430,7 @@ struct ContentView: View {
                     }
             }
         }
-        // Present the disclaimer as a full-screen modal when the user hasn't accepted it yet
+        // disclaimer
         .fullScreenCover(isPresented: Binding<Bool>(
             get: { !disclaimerAccepted },
             set: { _ in }
@@ -551,7 +547,7 @@ struct DisclaimerView: View {
                 Text("""
                 **Disclaimer**
 
-                This application provides information about Tourette’s Syndrome for educational purposes only. It is not intended to be a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+                This application provides information about Tourette’s Syndrome. It is not intended to be a substitute for professional legal or medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
                 """)
                 .font(.body)
                 .multilineTextAlignment(.center)
@@ -575,7 +571,6 @@ struct DisclaimerView: View {
     }
 }
 
-// MARK: - Preview Provider
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
