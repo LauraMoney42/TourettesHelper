@@ -135,8 +135,8 @@ struct AnyCodable: Codable {
 // MARK: - ViewModel
 
 final class ViewModel: ObservableObject {
-    private let apiKey = "APIKEY" // Replace with your API key
-    private let assistantID = "ASSISTANT KEY" // Replace with your Assistant ID
+    private let apiKey = "" // Replace with API key
+    private let assistantID = "" // Replace with Assistant ID
     private var threadID = ""
 
     // Function to create a thread
@@ -331,82 +331,84 @@ struct ContentView: View {
     @State private var messages = [ChatMessage]()
     @State private var assistantReady = false
     @State private var isAssistantTyping = false
+    @State private var disclaimerAccepted: Bool = false
+
 
     var body: some View {
         VStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 10) {
-                        ForEach(messages) { message in
-                            if message.sender == .user {
-                                HStack {
-                                    Spacer()
-                                    Text(message.content)
-                                        .padding(10)
-                                        .background(Color(red: 59/255, green: 209/255, blue: 199/255).opacity(0.4))
-                                        .cornerRadius(10)
+            if assistantReady {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 10) {
+                            ForEach(messages) { message in
+                                if message.sender == .user {
+                                    HStack {
+                                        Spacer()
+                                        Text(message.content)
+                                            .padding(10)
+                                            .background(Color(red: 59/255, green: 209/255, blue: 199/255).opacity(0.4))
+                                            .cornerRadius(10)
+                                    }
+                                    .padding(.horizontal)
+                                } else {
+                                    HStack {
+                                        Image("TSLogo")
+                                            .resizable()
+                                            .frame(width: 40, height: 40)
+                                            .clipShape(Circle())
+
+                                        if let attributedString = detectLinks(in: message.content) {
+                                            Text(attributedString)
+                                                .padding(10)
+                                                .background(Color.gray.opacity(0.2))
+                                                .cornerRadius(10)
+                                        } else {
+                                            Text(message.content)
+                                                .padding(10)
+                                                .background(Color.gray.opacity(0.2))
+                                                .cornerRadius(10)
+                                        }
+
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal)
                                 }
-                                .padding(.horizontal)
-                            } else {
+                            }
+                            if isAssistantTyping {
                                 HStack {
                                     Image("TSLogo")
                                         .resizable()
                                         .frame(width: 40, height: 40)
                                         .clipShape(Circle())
 
-                                    if let attributedString = detectLinks(in: message.content) {
-                                        Text(attributedString)
-                                            .padding(10)
-                                            .background(Color.gray.opacity(0.2))
-                                            .cornerRadius(10)
-                                    } else {
-                                        Text(message.content)
-                                            .padding(10)
-                                            .background(Color.gray.opacity(0.2))
-                                            .cornerRadius(10)
-                                    }
+                                    Text("...")
+                                        .padding(10)
+                                        .background(Color.gray.opacity(0.2))
+                                        .cornerRadius(10)
 
                                     Spacer()
                                 }
                                 .padding(.horizontal)
                             }
-                        }
-                        if isAssistantTyping {
-                            HStack {
-                                Image("TSLogo")
-                                    .resizable()
-                                    .frame(width: 40, height: 40)
-                                    .clipShape(Circle())
-
-                                Text("...")
-                                    .padding(10)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(10)
-
-                                Spacer()
+                            if let lastMessage = messages.last {
+                                Color.clear
+                                    .frame(height: 1)
+                                    .id(lastMessage.id)
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.vertical)
+                    }
+                    .onChange(of: messages.count) { newValue, oldValue in
                         if let lastMessage = messages.last {
-                            Color.clear
-                                .frame(height: 1)
-                                .id(lastMessage.id)
-                        }
-                    }
-                    .padding(.vertical)
-                }
-                .onChange(of: messages.count) { _ in
-                    if let lastMessage = messages.last {
-                        withAnimation {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            withAnimation {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
                         }
                     }
                 }
-            }
 
-            Spacer()
+                Spacer()
 
-            if assistantReady {
                 HStack {
                     TextField("Type here...", text: $text)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -431,6 +433,14 @@ struct ContentView: View {
                         setupThread()
                     }
             }
+        }
+        // Present the disclaimer as a full-screen modal when the user hasn't accepted it yet
+        .fullScreenCover(isPresented: Binding<Bool>(
+            get: { !disclaimerAccepted },
+            set: { _ in }
+        )) {
+            DisclaimerView(disclaimerAccepted: $disclaimerAccepted)
+                .interactiveDismissDisabled(true) // Prevent dismissal without acceptance
         }
     }
 
@@ -527,6 +537,41 @@ struct ContentView: View {
             print("Error detecting links: \(error)")
             return nil
         }
+    }
+}
+
+// Create the DisclaimerView
+struct DisclaimerView: View {
+    @Binding var disclaimerAccepted: Bool
+
+    var body: some View {
+        VStack {
+            Spacer()
+            ScrollView {
+                Text("""
+                **Disclaimer**
+
+                This application provides information about Tourette’s Syndrome for educational purposes only. It is not intended to be a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+                """)
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .padding()
+            }
+            Spacer()
+            Button(action: {
+                disclaimerAccepted = true
+            }) {
+                Text("I Understand and Accept")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(red: 59/255, green: 209/255, blue: 199/255))
+                    .cornerRadius(10)
+            }
+            .padding()
+        }
+        .padding()
     }
 }
 
